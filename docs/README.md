@@ -28,15 +28,12 @@ github.com → **New repository**
 - **Public** ← required; GitHub Pages needs a public repo on a free plan
 - Do **not** tick "Add a README"
 
-### 2. Push these files
+### 2. Push
+
+The repo is already initialised, committed and pointed at the remote. One command:
 
 ```bash
-cd /Users/juanayala/SCRIBBLD/docs
-git init
-git add .
-git commit -m "SCRIBBLD privacy policy, support and terms pages"
-git branch -M main
-git remote add origin https://github.com/LiveStackStudios/SCRIBBLD.git
+cd /Users/juanayala/SCRIBBLD
 git push -u origin main
 ```
 
@@ -44,18 +41,19 @@ Sign in when prompted. GitHub wants a **personal access token**, not your accoun
 password — github.com → Settings → Developer settings → Personal access tokens →
 Tokens (classic) → Generate new token, tick **repo**, paste it as the password.
 
-> **Why only `docs/` and not the whole SCRIBBLD project:** the repo has to be
-> public for Pages to work, and pushing the app would publish
-> `GoogleService-Info.plist` and `ExportOptions.plist` along with all the source.
-> The APN key *is* safely covered by `.gitignore`, but those two are not.
-> Publishing just these four pages avoids the question entirely.
+> **The whole app is in this repo, publicly.** `.gitignore` was tightened first
+> and the staged set verified by content scan — no keys, no API keys, no device
+> IDs. Specifically excluded: the APNs `.p8`, `GoogleService-Info.plist`,
+> `ExportOptions.plist`, the generated `.xcodeproj`, `.claude/`, and the two
+> internal working docs (`CURRENT_STATUS.md`, `APP_STORE_SUBMISSION.md` — they
+> list the app's current unpatched weaknesses, which is an attack roadmap).
 
 ### 3. Turn on Pages
 
 Repo → **Settings** → **Pages**
 
 - Source: **Deploy from a branch**
-- Branch: **`main`**, folder: **`/ (root)`**
+- Branch: **`main`**, folder: **`/docs`**  ← not root; the whole app is in this repo
 - Save
 
 Give it a minute or two, then the pages are live.
@@ -84,9 +82,9 @@ Same shape as the Pop Crush pages, already live at
 ## Updating later
 
 ```bash
-cd /Users/juanayala/SCRIBBLD/docs
-# edit the file
-git add . && git commit -m "Update privacy policy" && git push
+cd /Users/juanayala/SCRIBBLD
+# edit docs/privacy-policy.html
+git add docs && git commit -m "Update privacy policy" && git push
 ```
 
 Pages redeploys in under a minute. Bump the "Last updated" date at the top of
