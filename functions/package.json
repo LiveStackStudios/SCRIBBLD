@@ -1,0 +1,17 @@
+{
+  "name": "scribbld-functions",
+  "description": "Cloud Functions for SCRIBBLD push notifications.",
+  "private": true,
+  "main": "index.js",
+  "engines": {
+    "node": "20"
+  },
+  "scripts": {
+    "deploy": "firebase deploy --only functions --project scribbld-87573",
+    "logs": "firebase functions:log --project scribbld-87573"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^6.0.0"
+  }
+}

@@ -1,0 +1,178 @@
+name: SCRIBBLD
+options:
+  bundleIdPrefix: com.livestackstudios
+  deploymentTarget:
+    iOS: "17.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    DEVELOPMENT_TEAM: H2V83VFF6B
+    SWIFT_VERSION: "5.9"
+    IPHONEOS_DEPLOYMENT_TARGET: "17.0"
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "202607301700"
+    ENABLE_USER_SCRIPT_SANDBOXING: NO
+    CODE_SIGN_STYLE: Automatic
+
+# Firebase 11+ unified FirebaseFirestore (Swift support included; no separate
+# FirebaseFirestoreSwift product). Pinning to 11.x for stability — same family
+# the LiveStack PopCrush project ships with.
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "11.0.0"
+  GoogleMobileAds:
+    url: https://github.com/googleads/swift-package-manager-google-mobile-ads
+    from: "11.0.0"
+
+targets:
+  SCRIBBLD:
+    type: application
+    platform: iOS
+    sources:
+      - path: SCRIBBLD
+        excludes:
+          - "Resources/Fonts/**"
+          - "Resources/GoogleService-Info.plist"
+      - path: SCRIBBLD/Resources/Fonts
+        buildPhase: resources
+      - path: SCRIBBLD/Resources/GoogleService-Info.plist
+        buildPhase: resources
+    resources:
+      - path: SCRIBBLD/Resources/Assets.xcassets
+    info:
+      path: SCRIBBLD/Info.plist
+      properties:
+        CFBundleDisplayName: SCRIBBLD
+        # Bump CURRENT_PROJECT_VERSION at the top of this file when
+        # cutting a new TestFlight build; xcodegen mirrors it here so
+        # the static Info.plist (GENERATE_INFOPLIST_FILE = NO) carries
+        # a real CFBundleVersion instead of defaulting to "1".
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "202607301700"
+        UILaunchStoryboardName: ""
+        UIApplicationSceneManifest:
+          UIApplicationSupportsMultipleScenes: false
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIRequiresFullScreen: true
+        UIUserInterfaceStyle: Light
+        NSPhotoLibraryAddUsageDescription: "SCRIBBLD saves your sketches to your Photo Library."
+        NSUserTrackingUsageDescription: "Allow tracking so SCRIBBLD can show relevant ads and keep the app free."
+        # AdMob app ID for SCRIBBLD (LiveStack Studios). Same identifier in
+        # Debug and Release — App ID just registers the app with AdMob's
+        # backend; the per-placement ad-unit IDs swap to Google test units
+        # in Debug (see `AdConfig`) so we never click our own real ads.
+        GADApplicationIdentifier: "ca-app-pub-9946296672999343~8615261305"
+        # SKAdNetwork identifiers required by AdMob 11.x for iOS 14+
+        # attribution. Pulled from Google's published list.
+        SKAdNetworkItems:
+          - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
+          - SKAdNetworkIdentifier: 4fzdc2evr5.skadnetwork
+          - SKAdNetworkIdentifier: 2fnua5tdw4.skadnetwork
+          - SKAdNetworkIdentifier: ydx93a7ass.skadnetwork
+          - SKAdNetworkIdentifier: 5a6flpkh64.skadnetwork
+          - SKAdNetworkIdentifier: p78axxw29g.skadnetwork
+          - SKAdNetworkIdentifier: v72qych5uu.skadnetwork
+          - SKAdNetworkIdentifier: c6k4g5qg8m.skadnetwork
+          - SKAdNetworkIdentifier: s39g8k73mm.skadnetwork
+          - SKAdNetworkIdentifier: 3qy4746246.skadnetwork
+          - SKAdNetworkIdentifier: 3sh42y64q3.skadnetwork
+          - SKAdNetworkIdentifier: f38h382jlk.skadnetwork
+          - SKAdNetworkIdentifier: hs6bdukanm.skadnetwork
+          - SKAdNetworkIdentifier: prcb7njmu6.skadnetwork
+          - SKAdNetworkIdentifier: v9wttpbfk9.skadnetwork
+          - SKAdNetworkIdentifier: n38lu8286q.skadnetwork
+          - SKAdNetworkIdentifier: 47vhws6wlr.skadnetwork
+          - SKAdNetworkIdentifier: kbd757ywx3.skadnetwork
+          - SKAdNetworkIdentifier: 9t245vhmpl.skadnetwork
+          - SKAdNetworkIdentifier: a2p9lx4jpn.skadnetwork
+          - SKAdNetworkIdentifier: 22mmun2rn5.skadnetwork
+          - SKAdNetworkIdentifier: 4468km3ulz.skadnetwork
+          - SKAdNetworkIdentifier: 2u9pt9hc89.skadnetwork
+          - SKAdNetworkIdentifier: 8s468mfl3y.skadnetwork
+          - SKAdNetworkIdentifier: av6w8kgt66.skadnetwork
+          - SKAdNetworkIdentifier: klf5c3l5u5.skadnetwork
+          - SKAdNetworkIdentifier: ppxm28t8ap.skadnetwork
+          - SKAdNetworkIdentifier: ecpz2srf59.skadnetwork
+          - SKAdNetworkIdentifier: uw77j35x4d.skadnetwork
+          - SKAdNetworkIdentifier: pwa73g5rt2.skadnetwork
+          - SKAdNetworkIdentifier: mlmmfzh3r3.skadnetwork
+          - SKAdNetworkIdentifier: 578prtvx9j.skadnetwork
+          - SKAdNetworkIdentifier: 4dzt52r2t5.skadnetwork
+          - SKAdNetworkIdentifier: e5fvkxwrpn.skadnetwork
+          - SKAdNetworkIdentifier: 8c4e2ghe7u.skadnetwork
+          - SKAdNetworkIdentifier: zq492l623r.skadnetwork
+          - SKAdNetworkIdentifier: 3rd42ekr43.skadnetwork
+          - SKAdNetworkIdentifier: 3qcr597p9d.skadnetwork
+        UIBackgroundModes:
+          - remote-notification
+        UIAppFonts:
+          - Caveat-Regular.ttf
+          - DMSans-Regular.ttf
+        FirebaseAppDelegateProxyEnabled: false
+        # Universal Links for challenge invites — friend tap on link opens app
+        # at the right game. Domain is the default Firebase Hosting domain;
+        # adjust once a custom domain is set up.
+        CFBundleURLTypes:
+          - CFBundleURLSchemes:
+              - scribbld
+    entitlements:
+      path: SCRIBBLD/SCRIBBLD.entitlements
+      properties:
+        com.apple.developer.applesignin:
+          - Default
+        aps-environment: development
+        com.apple.developer.associated-domains:
+          # Firebase Hosting serves the same site on both domains, so a link
+          # shared as .web.app must open the app too, not bounce to Safari.
+          - "applinks:scribbld-prod.firebaseapp.com"
+          - "applinks:scribbld-prod.web.app"
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.livestackstudios.scribbld
+        DEVELOPMENT_TEAM: H2V83VFF6B
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        GENERATE_INFOPLIST_FILE: NO
+      configs:
+        # Debug stays on Automatic so direct-USB installs to Juan's
+        # iPhone continue to use the auto-managed Development profile.
+        Release:
+          # App Store archives MUST be signed with the Apple
+          # Distribution identity + the matching App Store profile.
+          # Xcode's "Automatic" mode wrongly falls back to the cached
+          # Development profile for this bundle (see ship log
+          # 2026-05-21). Pin the SCRIBBLD app target explicitly so the
+          # archive is rejection-proof. SPM package targets stay on
+          # Automatic — they don't get signed/embedded so they ignore
+          # these settings.
+          CODE_SIGN_STYLE: Manual
+          CODE_SIGN_IDENTITY: "Apple Distribution"
+          PROVISIONING_PROFILE_SPECIFIER: "SCRIBBLD App Store"
+          # Manual signing embeds the entitlements file as-is, so Release
+          # needs its own copy with `aps-environment = production`. With the
+          # Debug file, TestFlight builds register against the APNs sandbox
+          # and every FCM push is silently dropped. Keep the two files in
+          # sync when entitlements change.
+          CODE_SIGN_ENTITLEMENTS: SCRIBBLD/SCRIBBLD-Release.entitlements
+    dependencies:
+      - package: Firebase
+        product: FirebaseAppCheck
+      - package: Firebase
+        product: FirebaseFunctions
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseMessaging
+      - package: Firebase
+        product: FirebaseAnalytics
+      - package: GoogleMobileAds
+        product: GoogleMobileAds

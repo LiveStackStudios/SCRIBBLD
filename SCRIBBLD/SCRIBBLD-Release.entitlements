@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  Release / TestFlight / App Store entitlements.
+
+  Identical to SCRIBBLD.entitlements (which xcodegen generates from
+  project.yml and which Debug uses) EXCEPT for `aps-environment`, which must
+  be `production` here.
+
+  Why a second file: Release signing is Manual with a pinned distribution
+  profile, so xcodebuild embeds this entitlements file verbatim rather than
+  rewriting aps-environment the way an automatically-signed export would. A
+  TestFlight build carrying `development` registers against the APNs sandbox,
+  while Firebase Cloud Messaging sends to production — the pushes are accepted
+  by FCM and then silently dropped, which looks exactly like "push is broken"
+  with nothing in the logs.
+
+  This file is NOT generated. If you add or change an entitlement in
+  project.yml, mirror it here.
+-->
+<plist version="1.0">
+<dict>
+	<key>aps-environment</key>
+	<string>production</string>
+	<key>com.apple.developer.applesignin</key>
+	<array>
+		<string>Default</string>
+	</array>
+	<key>com.apple.developer.associated-domains</key>
+	<array>
+		<string>applinks:scribbld-prod.firebaseapp.com</string>
+		<string>applinks:scribbld-prod.web.app</string>
+	</array>
+</dict>
+</plist>

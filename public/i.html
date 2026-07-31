@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#F5F0DD">
+  <title>SCRIBBLD — Game invite</title>
+  <link rel="icon" href="data:,">
+  <style>
+    :root {
+      --cream: #F5F0DD;
+      --ink: #2E4A6B;
+      --red: #C24A3A;
+      --soft: rgba(46, 74, 107, 0.6);
+      --line: rgba(46, 74, 107, 0.25);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; background: var(--cream); color: var(--ink); -webkit-font-smoothing: antialiased; }
+    body {
+      font-family: -apple-system, system-ui, "Helvetica Neue", Arial, sans-serif;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+    }
+    .card {
+      max-width: 420px;
+      width: 100%;
+      background: rgba(255, 255, 255, 0.55);
+      border: 1.5px solid var(--ink);
+      border-radius: 18px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(46, 74, 107, 0.08);
+    }
+    h1 {
+      font-family: "Caveat", "Bradley Hand", "Marker Felt", cursive;
+      font-size: 38px;
+      letter-spacing: 0.5px;
+      margin: 0 0 4px;
+    }
+    .blurb {
+      font-size: 17px;
+      line-height: 1.4;
+      color: var(--ink);
+      margin: 8px 0 22px;
+    }
+    .blurb strong { font-weight: 600; }
+    .blurb .game { color: var(--red); font-weight: 600; }
+    .cta {
+      display: block;
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 600;
+      text-decoration: none;
+      margin-bottom: 10px;
+      border: none;
+      cursor: pointer;
+    }
+    .primary { background: var(--ink); color: var(--cream); }
+    .secondary {
+      background: transparent;
+      color: var(--ink);
+      border: 1.5px solid var(--ink);
+    }
+    .hint {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--soft);
+    }
+    .small {
+      margin-top: 22px;
+      font-size: 12px;
+      color: var(--soft);
+    }
+    .small a { color: var(--soft); }
+  </style>
+</head>
+<body>
+  <main class="card">
+    <h1>SCRIBBLD</h1>
+    <p class="blurb" id="blurb">A friend invited you to play.</p>
+
+    <a id="openApp" class="cta primary" href="#" hidden>Open in SCRIBBLD</a>
+    <a id="getApp" class="cta primary" href="#">Get SCRIBBLD on the App Store</a>
+    <a id="alreadyHave" class="cta secondary" href="#" hidden>I already have the app</a>
+
+    <p class="hint" id="hint"></p>
+    <p class="small">SCRIBBLD by LiveStack Studios · <a href="https://www.livestackstudios.com/">livestackstudios.com</a></p>
+  </main>
+
+  <script>
+    // Pull values out of the URL only — never from Firestore. The link
+    // itself is what the inviter chose to share, so no fresh PII leaves
+    // the device when the recipient lands here.
+    (function () {
+      var path = window.location.pathname;          // /i/<gameId>
+      var gameId = (path.split("/").filter(Boolean)[1] || "").trim();
+      var params = new URLSearchParams(window.location.search);
+      var kindRaw = (params.get("k") || "").toLowerCase();
+      var rawName = (params.get("n") || "").trim();
+
+      // Hard cap any text we render — defensive against pathological links.
+      function safe(text, max) {
+        if (!text) return "";
+        var clean = text.replace(/[<>]/g, "").slice(0, max);
+        return clean;
+      }
+      var name = safe(rawName, 24);
+
+      var GAME_LABELS = {
+        tictactoe:   "Tic Tac Toe",
+        dotsandboxes:"Dots & Boxes",
+        hangman:     "Hangman",
+        stop:        "Stop!"
+      };
+      // Accept the camelCase rawValue too.
+      var rawMap = {
+        ticTacToe:    "tictactoe",
+        dotsAndBoxes: "dotsandboxes",
+        hangman:      "hangman",
+        stop:         "stop"
+      };
+      var kindKey = rawMap[params.get("k")] || kindRaw;
+      var gameLabel = GAME_LABELS[kindKey] || "a game";
+
+      // Built via DOM nodes rather than innerHTML: `name` comes straight off
+      // the query string, and textContent can't be talked into producing
+      // markup no matter what it contains.
+      function el(tag, className, text) {
+        var node = document.createElement(tag);
+        if (className) node.className = className;
+        node.textContent = text;
+        return node;
+      }
+
+      var blurb = document.getElementById("blurb");
+      var knownGame = !!GAME_LABELS[kindKey];
+      blurb.textContent = "";
+      if (name) {
+        blurb.appendChild(el("strong", null, name));
+        blurb.appendChild(document.createTextNode(" invited you to play "));
+      } else {
+        blurb.appendChild(document.createTextNode("A friend invited you to play "));
+      }
+      if (knownGame) {
+        blurb.appendChild(el("span", "game", gameLabel));
+        blurb.appendChild(document.createTextNode(" "));
+      }
+      blurb.appendChild(document.createTextNode("on SCRIBBLD."));
+
+      // App Store URL — replace when the listing goes live.
+      // Until then this points to the Apple "search" page so taps don't
+      // 404; swap in the real product URL when we have one.
+      var appStoreURL = "https://apps.apple.com/search?term=scribbld";
+      document.getElementById("getApp").href = appStoreURL;
+
+      // The "I already have the app" / "Open in SCRIBBLD" fallback uses
+      // the custom URL scheme. iOS will only follow this if the app is
+      // installed; on web it silently no-ops. Universal Links normally
+      // intercept this same URL before Safari ever loads, so this is the
+      // belt-and-suspenders path.
+      var schemeURL = "scribbld://i/" + encodeURIComponent(gameId);
+      if (window.location.search) {
+        schemeURL += window.location.search;
+      }
+      var open = document.getElementById("openApp");
+      var already = document.getElementById("alreadyHave");
+      open.href = schemeURL;
+      already.href = schemeURL;
+
+      // If the page is being viewed from a desktop browser, surface the
+      // "I already have the app" button as well — the universal link
+      // didn't trigger, but maybe they want to copy the URL onto their
+      // phone.
+      var isiOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+      var hint = document.getElementById("hint");
+      if (isiOS) {
+        already.hidden = false;
+        hint.textContent = "After installing, come back to your messages and tap the link again to join.";
+      } else {
+        hint.textContent = "Open this link on your iPhone to join the game.";
+      }
+    })();
+  </script>
+</body>
+</html>

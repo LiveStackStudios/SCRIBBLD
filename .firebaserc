@@ -1,0 +1,12 @@
+{
+  "projects": {
+    "default": "scribbld-87573"
+  },
+  "targets": {
+    "scribbld-87573": {
+      "hosting": {
+        "invite": ["scribbld-prod"]
+      }
+    }
+  }
+}

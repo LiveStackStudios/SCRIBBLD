@@ -1,0 +1,217 @@
+rules_version = '2';
+
+// SCRIBBLD Firestore security rules.
+//
+// Deploy with:
+//   firebase deploy --only firestore:rules --project scribbld-prod
+//
+// Test interactively with the Firebase emulator (`firebase emulators:start`)
+// before pushing — bad rules will lock the live app out of its own data.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---- Helpers ----------------------------------------------------------
+    function isSignedIn() {
+      return request.auth != null;
+    }
+    function isMe(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+    // True when `field` has the same value before and after the write.
+    // `request.resource.data` is the full post-write document (not just the
+    // changed keys), so this works for partial `updateData` patches too.
+    function pinned(field) {
+      return request.resource.data.get(field, null) == resource.data.get(field, null);
+    }
+
+    // ---- /users/{uid} -----------------------------------------------------
+    // A profile doc is readable by any signed-in user (so friend search +
+    // friends-list name resolution work) and writable only by the owner.
+    match /users/{uid} {
+      allow read:   if isSignedIn();
+      allow create, update: if isMe(uid);
+      allow delete: if false;
+
+      // Owner-private data. The FCM push token lives here rather than on the
+      // profile doc above, which every signed-in user can read for friend
+      // search — a push token is a stable per-install identifier and must not
+      // be harvestable by walking the user list.
+      match /private/{docId} {
+        allow read, write: if isMe(uid);
+      }
+
+      // Friend list: only the owner reads/writes their own roster. accept()
+      // also writes the counterpart entry onto the peer's roster, so we allow
+      // writing a doc keyed by our own uid — but ONLY when that roster's owner
+      // actually sent us a friend request. Without that proof any user could
+      // insert themselves onto a stranger's friends list unilaterally.
+      match /friends/{friendUID} {
+        allow read:   if isMe(uid);
+        allow write:  if isMe(uid)
+                      || (
+                        isMe(friendUID)
+                        && exists(/databases/$(database)/documents/users/$(friendUID)/friendRequests/$(uid))
+                      );
+      }
+
+      // Incoming friend requests. Sender writes (status=pending); recipient
+      // updates to accepted/rejected. Anyone can read their own inbox.
+      match /friendRequests/{senderUID} {
+        allow read:   if isMe(uid);
+        // Blocked users can't send friend requests either — otherwise
+        // blocking only stops invites and the harassment moves one screen.
+        allow create: if isMe(senderUID)
+                      && !exists(/databases/$(database)/documents/users/$(uid)/blocked/$(senderUID));
+        allow update: if isMe(uid);
+        allow delete: if isMe(uid) || isMe(senderUID);
+      }
+
+      // Live-game invites. Inviter writes; invitee reads + deletes on
+      // accept/decline.
+      // Blocked users. Owner-only, and the doc ID is the blocked uid so
+      // other rules can test it with a cheap `exists()`.
+      match /blocked/{blockedUID} {
+        allow read, write: if isMe(uid);
+      }
+
+      // The inviter must be the authenticated writer. Previously any signed-in
+      // user could drop a doc into anyone's invite inbox with an arbitrary
+      // `fromName`, which the push Cloud Function renders into the
+      // notification title — an unauthenticated-looking phishing/spam channel.
+      //
+      // A blocked sender is also refused here rather than only being hidden
+      // client-side: blocking has to survive a modified client to be worth
+      // anything.
+      match /invites/{gameId} {
+        allow read:   if isMe(uid);
+        allow create: if isMe(request.resource.data.from)
+                      && !exists(/databases/$(database)/documents/users/$(uid)/blocked/$(request.auth.uid));
+        allow update, delete: if isMe(uid) || isMe(resource.data.from);
+      }
+    }
+
+    // ---- /games/{gameId} --------------------------------------------------
+    // Three classes of writes are permitted:
+    //   1. Creator opens the game (per-friend invite OR share-link open
+    //      invite) — must be signed in and must list themselves in players.
+    //   2. Existing players write moves — runTransaction round-trip, never
+    //      mutates the `players` array.
+    //   3. Share-link joiner takes the open slot — only when the game is
+    //      still pending AND has exactly one player AND the joiner is
+    //      adding themselves (not swapping someone else out).
+    //
+    // Reads are still restricted to listed players so the game doc is never
+    // exposed to random link recipients before they commit to joining.
+    match /games/{gameId} {
+      // Read access:
+      //   1. Listed players can always read their own games (active or
+      //      completed history).
+      //   2. ANY signed-in user can read a still-pending game that has
+      //      an open slot. This is what makes the share-link join flow
+      //      work — the joiner needs to read the doc inside the
+      //      `joinOpenInvite` transaction before writing themselves
+      //      into `players`. The gameId in the URL is the credential;
+      //      possession of it is intentional access.
+      //      Narrowed to games that were actually opened as share-link
+      //      invites (`inviteKind == 'open'`) and haven't expired. A
+      //      per-friend invite to an N-player game (Stop!) also sits at
+      //      pending with free slots, but it was never meant to be readable
+      //      by strangers — its invitee is already listed in `players`.
+      allow read:
+        if isSignedIn()
+        && (
+          request.auth.uid in resource.data.players
+          || (
+            resource.data.status == 'pending'
+            && resource.data.get('inviteKind', 'friend') == 'open'
+            && request.time < resource.data.get('expiresAt', request.time)
+            && resource.data.players.size() < resource.data.get('maxPlayers', 2)
+          )
+        );
+
+      // Cap at 5 to match Stop!'s maxPlayers. Other game kinds enforce
+      // their own lower caps client-side (writes go through the typed
+      // LiveGameService API), but the rule is the hard backstop.
+      // `maxPlayers` is pinned to what the game kind can actually support:
+      // only Stop! seats more than two, and never more than five. This stops
+      // a modified client from opening a 5-seat Tic Tac Toe. NOTE: the free
+      // vs Ink Pro seat limit (2 vs 5 for Stop!) is enforced client-side
+      // only — there is no server-verified entitlement yet because StoreKit
+      // is still mocked. See CURRENT_STATUS.md §2.
+      allow create:
+        if isSignedIn()
+        && request.auth.uid in request.resource.data.players
+        && (
+          request.resource.data.type == 'stop'
+            ? (request.resource.data.maxPlayers >= 2 && request.resource.data.maxPlayers <= 5)
+            : request.resource.data.maxPlayers == 2
+        )
+        && request.resource.data.players.size() <= request.resource.data.maxPlayers;
+
+      // Update path A — existing players writing moves. Players list
+      // must not change here; joiner appends use path B below. The
+      // identity fields are pinned so a player can't reopen a full game
+      // to strangers by raising `maxPlayers`, flipping `inviteKind`, or
+      // reverting a live game to `pending`.
+      allow update:
+        if isSignedIn()
+        && request.auth.uid in resource.data.players
+        && request.resource.data.players == resource.data.players
+        && pinned('type')
+        && pinned('maxPlayers')
+        && pinned('inviteKind')
+        && pinned('createdAt')
+        && !(resource.data.status != 'pending' && request.resource.data.status == 'pending');
+
+      // Update path B — share-link joiner appending themselves to a
+      // still-pending OPEN game with a free slot. `hasAll` is what keeps
+      // this an append: combined with the exact size check and the
+      // "joiner wasn't already listed" check, the new array is provably
+      // the old one plus the joiner, so a joiner can't evict the host or
+      // inject uids that never joined.
+      allow update:
+        if isSignedIn()
+        && resource.data.status == 'pending'
+        && resource.data.get('inviteKind', 'friend') == 'open'
+        && request.time < resource.data.get('expiresAt', request.time)
+        && resource.data.players.size() < resource.data.get('maxPlayers', 2)
+        && request.resource.data.players.size() == resource.data.players.size() + 1
+        && request.resource.data.players.hasAll(resource.data.players)
+        && request.auth.uid in request.resource.data.players
+        && !(request.auth.uid in resource.data.players)
+        && pinned('type')
+        && pinned('maxPlayers')
+        && pinned('inviteKind')
+        && pinned('createdAt');
+
+      // Inviter can cancel a still-pending solo game (abandon-on-dismiss).
+      allow delete:
+        if isSignedIn()
+        && resource.data.status == 'pending'
+        && resource.data.players.size() == 1
+        && request.auth.uid in resource.data.players;
+    }
+
+    // ---- /reports/{reportId} ------------------------------------------
+    // Abuse reports (App Store Guideline 1.2). Write-only from the client:
+    // a reporter may file one as themselves and can never read reports back,
+    // so nobody can enumerate who has been reported or discover that they
+    // were. Review happens server-side — `onReportCreated` surfaces each one
+    // in Cloud Logging.
+    match /reports/{reportId} {
+      allow read, update, delete: if false;
+      allow create:
+        if isMe(request.resource.data.reporterUID)
+        && request.resource.data.reportedUID is string
+        && request.resource.data.reportedUID != request.auth.uid
+        && request.resource.data.reason is string
+        && request.resource.data.reason.size() <= 40
+        && (!('note' in request.resource.data) || request.resource.data.note.size() <= 500);
+    }
+
+    // Everything else: deny by default.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
