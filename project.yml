@@ -60,6 +60,13 @@ targets:
           - UIInterfaceOrientationPortrait
         UIRequiresFullScreen: true
         UIUserInterfaceStyle: Light
+        # Export compliance, declared once here so App Store Connect stops
+        # asking on every upload. The app implements NO encryption of its own:
+        # network traffic is plain HTTPS/TLS via the system stack, and the only
+        # crypto call is CryptoKit SHA-256 to hash the Sign in with Apple nonce
+        # (a hash, not encryption, and Apple's own framework). That is the
+        # standard exemption.
+        ITSAppUsesNonExemptEncryption: false
         NSPhotoLibraryAddUsageDescription: "SCRIBBLD saves your sketches to your Photo Library."
         NSUserTrackingUsageDescription: "Allow tracking so SCRIBBLD can show relevant ads and keep the app free."
         # AdMob app ID for SCRIBBLD (LiveStack Studios). Same identifier in

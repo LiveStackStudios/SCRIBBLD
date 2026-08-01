@@ -1,18 +1,27 @@
 /**
- * SCRIBBLD push-notification Cloud Functions.
+ * SCRIBBLD Cloud Functions.
  *
- * Three Firestore triggers, all v2-style:
- *   1. onInviteCreated  — /users/{uid}/invites/{gameId} create →
+ * Firestore triggers:
+ *   1. onInviteCreated  — /users/{uid}/invites/{gameId} created →
  *      notify the recipient that a friend has challenged them.
- *   2. onGameJoined     — /games/{gameId} update where players list
- *      grew → notify the existing players that someone joined.
- *   3. onLobbyReady     — /games/{gameId} update where the lobby
- *      just reached `maxPlayers` → notify everyone that the game
- *      is ready to start.
+ *   2. onGameJoined     — /games/{gameId} updated and the players list
+ *      grew → notify the players already there, and once the lobby
+ *      reaches `maxPlayers`, tell everyone it's ready to start.
+ *   3. onReportCreated  — /reports/{reportId} created → surface the
+ *      abuse report in Cloud Logging so it's reviewable.
  *
- * FCM tokens live on the user profile doc at `users/{uid}.fcmToken`
- * (single token; PushService.persistToken writes it merge:true on
- * every app launch + token rotation).
+ * Callable:
+ *   4. deleteAccount    — App Store Guideline 5.1.1(v). Removes the
+ *      caller's data, including the copies that live on OTHER users'
+ *      documents, which security rules rightly forbid a client from
+ *      touching.
+ *
+ * FCM tokens live at `users/{uid}/private/push` — NOT on the profile
+ * doc, which every signed-in user can read for friend search. A push
+ * token is a stable per-install identifier and must not be harvestable
+ * by walking the user list. `tokenForUID` still falls back to the old
+ * `users/{uid}.fcmToken` field for devices that registered before the
+ * move.
  *
  * Errors are caught and logged — a failed notification must NEVER
  * fail the Firestore write that triggered it.
