@@ -105,7 +105,7 @@ struct ChallengeFriendSheet: View {
             to: friend.id,
             opponentName: friend.displayName,
             initialState: initialState(for: kind),
-            maxPlayers: kind.maxPlayers(hostIsPro: store.status.isPro)
+            maxPlayers: kind.maxPlayers(hostIsPro: store.premiumUnlocked)
         )
         if let id {
             HapticEngine.success()

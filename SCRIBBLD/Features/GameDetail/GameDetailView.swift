@@ -224,7 +224,7 @@ struct GameDetailView: View {
         let initial = LiveGameKind.openInviteInitialState(kind: kind, inviter: me)
         guard let gameId = await LiveGameService.shared.createOpenInvite(
             kind: kind, from: me, initialState: initial,
-            maxPlayers: kind.maxPlayers(hostIsPro: store.status.isPro)
+            maxPlayers: kind.maxPlayers(hostIsPro: store.premiumUnlocked)
         ) else {
             inviteError = "Couldn't create the invite. Check your connection and try again."
             return

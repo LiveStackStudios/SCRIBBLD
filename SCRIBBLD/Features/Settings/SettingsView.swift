@@ -14,6 +14,14 @@ struct SettingsView: View {
     @AppStorage(AppLanguage.storageKey) private var languageRaw: String = ""
 
     @State private var showPaywall = false
+    @State private var showShare = false
+
+    static var appVersion: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "1.0"
+    }
+    static var buildNumber: String {
+        Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "1"
+    }
     @State private var confirmDelete = false
     @State private var deleting = false
     @State private var deleteError: String?
@@ -44,19 +52,6 @@ struct SettingsView: View {
                 Toggle(t("Haptic feedback", "Vibración"), isOn: $hapticsOn)
                     .onChange(of: hapticsOn) { _, on in HapticEngine.enabled = on }
             }
-            Section(t("Appearance", "Apariencia")) {
-                NavigationLink {
-                    InkProView()
-                } label: {
-                    HStack {
-                        Text(t("Midnight Ink (Ink Pro)", "Tinta nocturna (Ink Pro)"))
-                        Spacer()
-                        if !store.status.isPro {
-                            Text(t("Locked", "Bloqueado")).foregroundStyle(.secondary)
-                        }
-                    }
-                }
-            }
             Section(t("Hangman Style", "Estilo Ahorcado")) {
                 Picker("", selection: $friendlyHangman) {
                     Text(t("Classic", "Clásico")).tag(false)
@@ -64,35 +59,28 @@ struct SettingsView: View {
                 }
                 .pickerStyle(.segmented)
             }
-            Section(t("Ink Pro", "Ink Pro")) {
-                HStack {
-                    Text(store.status.isPro
-                         ? t("Subscribed", "Suscrito")
-                         : t("Free Tier", "Versión gratuita"))
-                    Spacer()
-                    Button(store.status.isPro
-                           ? t("Manage", "Administrar")
-                           : t("Upgrade", "Mejorar")) {
-                        showPaywall = true
-                    }
-                }
-                Button(t("Restore Purchases", "Restaurar compras")) {
-                    Task { await store.restore() }
-                }
-            }
             Section(t("About", "Acerca de")) {
-                Text(t("Version 0.1 (1)", "Versión 0.1 (1)"))
+                // Read from the bundle — this used to be hardcoded "Version
+                // 0.1 (1)", which was wrong in every shipped build.
+                Text(t("Version", "Versión") + " \(Self.appVersion) (\(Self.buildNumber))")
+                    .foregroundStyle(.secondary)
+                // These pointed at livestackstudios.com/privacy, which 404s.
                 Link(t("Privacy Policy", "Política de privacidad"),
-                     destination: URL(string: "https://livestackstudios.com/privacy")!)
-                Button(t("Rate SCRIBBLD", "Calificar SCRIBBLD")) {
-                    HapticEngine.light()
-                }
+                     destination: URL(string: "https://livestackstudios.github.io/SCRIBBLD/privacy-policy.html")!)
+                Link(t("Terms of Use", "Términos de uso"),
+                     destination: URL(string: "https://livestackstudios.github.io/SCRIBBLD/terms-of-use.html")!)
+                Link(t("Support", "Soporte"),
+                     destination: URL(string: "https://livestackstudios.github.io/SCRIBBLD/support.html")!)
                 Button(t("Tell a Friend", "Cuéntale a un amigo")) {
                     HapticEngine.light()
+                    showShare = true
                 }
+                // Developer-only visual test bench — must not ship.
+                #if DEBUG
                 NavigationLink(t("Hand-drawn preview", "Vista previa dibujada")) {
                     HandDrawnPreviewView()
                 }
+                #endif
             }
             if auth.isSignedIn {
                 Section(t("Privacy & Safety", "Privacidad y seguridad")) {
@@ -136,8 +124,11 @@ struct SettingsView: View {
             }
         }
         .navigationTitle(t("Settings", "Ajustes"))
-        .sheet(isPresented: $showPaywall) {
-            InkProView().environmentObject(store)
+        .sheet(isPresented: $showShare) {
+            ShareSheet(items: [t(
+                "SCRIBBLD - six hand-drawn paper games. Tic Tac Toe, Dots and Boxes, Hangman, Stop!, Sand Snake and a sketching canvas.",
+                "SCRIBBLD - seis juegos de papel dibujados a mano. Tres en raya, Timbiriche, Ahorcado, ¡Stop!, Serpiente de Arena y un lienzo para dibujar."
+            )])
         }
         .alert(t("Delete your account?", "¿Eliminar tu cuenta?"), isPresented: $confirmDelete) {
             Button(t("Cancel", "Cancelar"), role: .cancel) {}

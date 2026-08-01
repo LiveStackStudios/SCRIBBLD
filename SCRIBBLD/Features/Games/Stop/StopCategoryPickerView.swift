@@ -159,7 +159,7 @@ struct StopCategoryPickerView: View {
                     key: key,
                     language: vm.game.language,
                     selected: selected.contains(key),
-                    locked: key.tier == .premium && !store.status.isPro,
+                    locked: key.tier == .premium && !store.premiumUnlocked,
                     canSelectMore: selected.count < 20
                 ) {
                     toggle(key)

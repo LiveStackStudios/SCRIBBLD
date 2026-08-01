@@ -17,6 +17,20 @@ final class StoreManager: ObservableObject {
         var savings: String?
     }
 
+    /// SCRIBBLD 1.0 ships **free, with no in-app purchases**. Every premium
+    /// feature is unlocked for everyone and the paywall is unreachable.
+    ///
+    /// This is deliberately NOT done by setting `status = .inkPro`: that would
+    /// also hide the banner ads (see `BannerAdView`), which are the app's only
+    /// revenue in 1.0. Status stays `.free` so ads keep showing.
+    ///
+    /// Flip to `false` when real StoreKit 2 and a server-verified entitlement
+    /// land — see `memory/project_storekit_entitlement_todo.md`.
+    static let allPremiumFreeInV1 = true
+
+    /// Single place the UI asks "should premium content be available?".
+    var premiumUnlocked: Bool { Self.allPremiumFreeInV1 || status.isPro }
+
     @Published var status: SubscriptionStatus = .free
     @Published var sessionUnlocks: Set<String> = []
 
@@ -26,17 +40,17 @@ final class StoreManager: ObservableObject {
         .init(id: .annualSubscription,  headline: "12 MONTHS", price: "$14.99", perUnit: "/yr", badge: "BEST VALUE", savings: "SAVE 37%")
     ]
 
+    /// No-op in 1.0. This used to sleep briefly and then set `status = .inkPro`,
+    /// i.e. it granted a paid entitlement with no payment sheet — which is a
+    /// Guideline 2.1 rejection the moment a reviewer taps it. The paywall is
+    /// unreachable in 1.0; this stays inert until real StoreKit 2 lands so the
+    /// deceptive path cannot come back by accident.
     func purchase(_ id: ProductID) async {
-        // Real StoreKit 2 wiring will go here once products are configured.
-        // Until then, just flip the entitlement so paywall flows are testable.
-        try? await Task.sleep(nanoseconds: 250_000_000)
-        status = .inkPro
-        HapticEngine.success()
+        assertionFailure("purchase() called but StoreKit is not implemented — the paywall should be unreachable in 1.0")
     }
 
     func startTrial() async {
-        try? await Task.sleep(nanoseconds: 250_000_000)
-        status = .trial(daysRemaining: 7)
+        assertionFailure("startTrial() called but StoreKit is not implemented")
     }
 
     func restore() async {
@@ -48,6 +62,6 @@ final class StoreManager: ObservableObject {
     }
 
     func isUnlocked(_ key: String) -> Bool {
-        status.isPro || sessionUnlocks.contains(key)
+        premiumUnlocked || sessionUnlocks.contains(key)
     }
 }
