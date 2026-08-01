@@ -183,3 +183,19 @@ targets:
         product: FirebaseAnalytics
       - package: GoogleMobileAds
         product: GoogleMobileAds
+
+  # UI test target used only to drive App Store screenshot capture.
+  # Not part of the app; excluded from Release archives automatically.
+  SCRIBBLDUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - SCRIBBLDUITests
+    dependencies:
+      - target: SCRIBBLD
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.livestackstudios.scribbld.uitests
+        DEVELOPMENT_TEAM: H2V83VFF6B
+        CODE_SIGN_STYLE: Automatic
+        TEST_TARGET_NAME: SCRIBBLD

@@ -32,7 +32,13 @@ struct HomeView: View {
                 }
             }
             .navigationDestination(for: GameType.self) { game in
-                GameDetailView(game: game)
+                // Sketching and Sand Snake have no mode or difficulty to pick,
+                // so they open directly — same routing as the Games tab.
+                switch game {
+                case .sketching: SketchingView()
+                case .sandSnake: SandSnakeView()
+                default:         GameDetailView(game: game)
+                }
             }
             .navigationDestination(for: HomeRoute.self) { route in
                 switch route {
@@ -112,7 +118,7 @@ struct HomeView: View {
 
     private var gameGrid: some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 14), GridItem(.flexible(), spacing: 14)], spacing: 14) {
-            ForEach([GameType.ticTacToe, .dotsAndBoxes, .hangman, .stop]) { game in
+            ForEach(GameType.allCases) { game in
                 NavigationLink(value: game) {
                     GameCardView(game: game)
                 }

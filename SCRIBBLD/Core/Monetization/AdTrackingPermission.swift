@@ -22,6 +22,10 @@ enum AdTrackingPermission {
 
     static func requestIfDue() async {
         #if canImport(AppTrackingTransparency)
+        // The App Store screenshot run relaunches the app repeatedly; the ATT
+        // sheet would cover the UI being captured. Launch-argument only, so
+        // the shipping app is unaffected.
+        guard !ProcessInfo.processInfo.arguments.contains("-SCRIBBLD_SCREENSHOTS") else { return }
         guard !UserDefaults.standard.bool(forKey: promptedKey) else { return }
         let count = UserDefaults.standard.integer(forKey: launchCountKey)
         guard count >= 2 else { return }

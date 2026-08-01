@@ -13,8 +13,15 @@ struct BannerAdView: View {
     let adUnitID: String
     @EnvironmentObject private var store: StoreManager
 
+    /// The UI test that captures App Store screenshots passes this so the
+    /// AdMob *test* banner ("AdMob has a YouTube channel… Test mode") doesn't
+    /// end up in store artwork. It only affects that run — the flag is a
+    /// launch argument, never set by the shipping app.
+    private static let suppressForScreenshots =
+        ProcessInfo.processInfo.arguments.contains("-SCRIBBLD_SCREENSHOTS")
+
     var body: some View {
-        if store.status.isPro {
+        if store.status.isPro || Self.suppressForScreenshots {
             EmptyView()
         } else {
             #if canImport(GoogleMobileAds)

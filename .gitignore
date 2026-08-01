@@ -54,6 +54,8 @@ SCRIBBLD.xcodeproj/
 
 # ---------- Build output ---------------------------------------------
 build/
+build-sim/
+*.xcresult
 DerivedData/
 *.xcarchive
 *.ipa
