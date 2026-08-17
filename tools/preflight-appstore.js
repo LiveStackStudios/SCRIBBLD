@@ -115,8 +115,21 @@ const warn = (m) => WARN.push(m);
   }
 
   // --- Phased release / price ---
-  const pr = await api(`/v1/apps/${APP}/appPriceSchedule`);
-  if (pr.status === 200 && pr.json.data) ok('Price schedule exists'); else warn('Price schedule not confirmed via API — check the app is set to Free in Pricing');
+  // A schedule resource can exist with NO prices attached, which still blocks
+  // submission with "You must choose a price tier". Check the prices, not the
+  // schedule.
+  const pr = await api(`/v1/apps/${APP}/appPriceSchedule?include=manualPrices`);
+  const prices = ((pr.json || {}).included || []).filter(x => x.type === 'appPrices');
+  prices.length ? ok(`Pricing: ${prices.length} manual price set`) : block('No price tier chosen (Pricing and Availability)');
+
+  // Copyright is required and easy to miss.
+  const vAttrs = (await api(`/v1/appStoreVersions/${v.id}`)).json.data.attributes;
+  vAttrs.copyright ? ok(`Copyright: ${vAttrs.copyright}`) : block('Copyright field is empty');
+
+  // App Privacy (nutrition labels) is NOT exposed in the public ASC API - every
+  // candidate endpoint 404s. It can only be completed in the web UI, so this
+  // tool cannot verify it. Always confirm it by eye before submitting.
+  warn('App Privacy nutrition labels cannot be checked via API - verify manually in App Store Connect');
 
   // --- IAP (should NOT block a free 1.0) ---
   const subs = (await api(`/v1/apps/${APP}/subscriptionGroups`)).json.data || [];
